@@ -4,6 +4,19 @@
 #include <SD.h>
 #include <FS.h>
 
+#define DEBUG_MODE 1  // 1: 开启调试模式，0: 关闭调试模式
+
+// 定义调试打印宏
+#if DEBUG_MODE
+  #define DEBUG_PRINT(x) Serial.print(x)
+  #define DEBUG_PRINTLN(x) Serial.println(x)
+  #define DEBUG_PRINTF(fmt, ...) Serial.printf(fmt, __VA_ARGS__)
+#else
+  #define DEBUG_PRINT(x)
+  #define DEBUG_PRINTLN(x)
+  #define DEBUG_PRINTF(fmt, ...)
+#endif
+
 // SPI引脚定义
 #define SPI_MOSI 23
 #define SPI_MISO 19
@@ -56,46 +69,46 @@ void setup()
 
   sdCardAvailable = SD.begin(SD_CS, SPI);
   if(!sdCardAvailable){
-      Serial.println("SD Card not available");
+      DEBUG_PRINTLN("SD Card not available");
       sdCardAvailable = false;
       return;
   } else {
     sdCardAvailable = true;
-    Serial.println("SD Card initialized successfully");
+    DEBUG_PRINTLN("SD Card initialized successfully");
     // 打印SD卡信息
-    Serial.println("SD Card available");
+    DEBUG_PRINTLN("SD Card available");
   
     #ifdef ESP32
       uint8_t cardType = SD.cardType();
 
       if(cardType == CARD_NONE){
-          Serial.println("No SD card attached");
+          DEBUG_PRINTLN("No SD card attached");
           return;
       }
 
-      Serial.print("SD Card Type: ");
+      DEBUG_PRINTLN("SD Card Type: ");
       if(cardType == CARD_MMC){
-          Serial.println("MMC");
+          DEBUG_PRINTLN("MMC");
       } else if(cardType == CARD_SD){
-          Serial.println("SDSC");
+          DEBUG_PRINTLN("SDSC");
       } else if(cardType == CARD_SDHC){
-          Serial.println("SDHC");
+          DEBUG_PRINTLN("SDHC");
       } else {
-          Serial.println("UNKNOWN");
+          DEBUG_PRINTLN("UNKNOWN");
       }
 
       uint64_t cardSize = SD.cardSize();
       int cardSizeInMB = cardSize/(1024 * 1024);
      
-      Serial.printf("Card size: %u MB \n", cardSizeInMB);
+      DEBUG_PRINTF("Card size: %u MB \n", cardSizeInMB);
  
       uint64_t bytesAvailable = SD.totalBytes(); 
       int spaceAvailableInMB = bytesAvailable/(1024 * 1024);
  
-      Serial.printf("Space available: %u MB \n", spaceAvailableInMB);
+      DEBUG_PRINTF("Space available: %u MB \n", spaceAvailableInMB);
  
       uint64_t spaceUsed = SD.usedBytes(); 
-      Serial.printf("Space used: %u bytes\n", spaceUsed);
+      DEBUG_PRINTF("Space used: %u bytes\n", spaceUsed);
 
     #endif   
   }
@@ -106,21 +119,22 @@ void recordNewData(fs::FS &fs, const char * path, const char * message)
 {
   // 打开文件，以追加模式
   File file = fs.open(path, FILE_APPEND);
+
   // 如果打开文件失败，输出错误信息
   if(!file) {
-    Serial.println("Failed to open file for appending");
+    DEBUG_PRINTLN("Failed to open file for appending");
     // 尝试重新初始化SD卡
     sdCardAvailable = SD.begin(SD_CS);
     return;
   }
 
-  // 将message写入文件
+  // 将message写入文件中
   if(file.println(message)) {
     // 如果写入成功，输出成功信息
-    Serial.println("Data appended");
+    DEBUG_PRINTLN("Data appended");
   } else {
     // 如果写入失败，输出失败信息
-    Serial.println("Append failed");
+    DEBUG_PRINTLN("Append failed");
     // 尝试重新初始化SD卡
     sdCardAvailable = SD.begin(SD_CS);
   }
